@@ -131,8 +131,9 @@
             let totalPercentage = 0;
 
             subjects.forEach(subject => {
-                const catScore = parseInt(student[`${subject}_CAT`]) || 0;
-                const examScore = parseInt(student[`${subject}_Exam`]) || 0;
+                const catScore = parseInt(student[`${subject}_CAT`]);
+                const examScore = parseInt(student[`${subject}_Exam`]);
+                console.log(catScore,examScore)
                 const totalScore = catScore + examScore;
                 totalPercentage += (totalScore / 100) * 100; // Total is out of 100
             });
