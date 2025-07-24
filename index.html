@@ -192,7 +192,6 @@
             const subjects = Object.keys(students[0]).filter(key => key.includes('_CAT')).map(key => key.split('_')[0]);
 
             let totalPercentage = 0;
-            let totalScore = 0;
 
             subjects.forEach(subject => {
                 const catScore = parseInt(students[id][`${subject}_CAT`]);
@@ -200,7 +199,7 @@
                 if (isNaN(catScore) && isNaN(examScore)) {
                     return; // Skip this subject
                 }
-                totalScore = catScore + examScore;
+                const totalScore = catScore + examScore;
                 const percentage = (totalScore / 100) * 100; // Total is out of 100
                 totalPercentage += percentage;
 
@@ -226,8 +225,8 @@
             // Add a row for overall results
             const overallRow = document.createElement('tr');
             overallRow.innerHTML = `
-                <td><strong>Overall</strong></td>
-                <td colspan="2">${totalScore}</td>
+                <td><strong>Overall(${subjects.length})</strong></td>
+                <td colspan="2">${totalPercentage}</td>
                 <td>${overallPercentage.toFixed(2)}%</td>
                 <td>${grade}</td>
                 <td>${remark}</td>
