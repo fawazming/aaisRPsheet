@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Load paper.css for happy printing -->
+    <link rel="stylesheet" href="css/paper.css">
+    <link rel="stylesheet" href="css/style.css">
+
+    <!-- Set page size here: A5, A4, A4 landscape, letter, legal or A3 -->
+    <!-- Set also "landscape" if you need -->
+    <style>
+        @page {
+            size: A4
+        }
+    </style>
+    <title>Cumulative Report Sheet</title>
+</head>
+
+<body class="A4">
+    <div id="reportsContainer"></div>
+    <div id="fullSheet">
+        <div class="container sheet padding-5mm">
+            <header>
+                <img class="logo" src="logo.png" width="600px" alt="">
+                <p class="title">Cumulative Student Performance Report</p>
+                <div class="details">
+                    <div class="float-left">
+                        <p class="name">Name: <b id="sname"></b> </p>
+                        <p class="adm">Class: <b id="sclass"></b> </p>
+                        <p class="genr">Age: <b id="age"></b> </p>
+                    </div>
+                    <div class="float-right">
+                        <p class="pres">Number of time School Opened: <b id="schOpened"></b> times </p>
+                        <p class="pres">Present in School: <b id="present"></b> times </p>
+                        <p class="abst">Absent in School: <b id="absent"></b> times</p>
+                    </div>
+                </div>
+            </header>
+            <table class="table table-sm table-bordered">
+                <thead>
+                    <tr class="">
+                        <th class="" style="width: 40%;">SUBJECTS</th>
+                        <th class="vertical-text">1st Term (%)</th>
+                        <th class="vertical-text">2nd Term (%)</th>
+                        <th class="vertical-text">3rd Term (%)</th>
+                        <th class="vertical-text">Overall (%)</th>
+                        <th class="vertical-text">GRADE</th>
+                        <th class="vertical-text">REMARK</th>
+                    </tr>
+                </thead>
+                <tbody id="studentTableBody">
+                    <!-- Rows will be populated here -->
+                </tbody>
+            </table>
+        </div>
+        <div class="container sheet padding-5mm" style=" padding-left: 50px; ">
+            <div class="stats" style="margin-top: 100px;">
+                <p class="stat">Number in class: <b id="nic"></b></p>
+                <p class="stat">Next Term Begins: <b id="schResumes"></b></p>
+            </div>
+            <footer>
+                <div class="">
+                    <p class="comment">Class Teacher's Comment: </p>
+                    <b id="cTeacher"></b> <span id="sig">Signature & Date</span>
+                    <br>
+                    <br>
+                    <p class="comment">Head Teacher's Comment: </p>
+                    <b id="hTeacher"></b> <span id="sig">Signature & Date</span>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        let students = [];
+
+        async function fetchData(sheetName) {
+            const baseUrl = 'https://sheet.spacet.me';
+            const sheetId = '12fBNoBq-4GQPtkOCRv-MLVp96WcOJy4xHBXWpkTP5xs';
+            const endpoint = `${baseUrl}/${sheetId}/${sheetName}.json`;
+            const { values } = await fetch(endpoint)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Unable to load data from ' + endpoint);
+                    }
+                    return response.json();
+                });
+            const [header, ...rows] = values;
+            return rows.map(row => {
+                const entries = header.map((key, i) => [key, row[i]]);
+                return Object.fromEntries(entries);
+            });
+        }
+
+        async function fetchAllData() {
+            const data1 = await fetchData('bs1');
+            const data2 = await fetchData('bs2');
+            const data3 = await fetchData('bs3');
+
+            // Combine data from all three terms
+            const combinedData = {};
+
+            data1.forEach(student => {
+                combinedData[student["Student Name"]] = {
+                    ...student,
+                    "1st Term Percentage": calculateTermPercentage(student),
+                };
+            });
+
+            data2.forEach(student => {
+                if (combinedData[student["Student Name"]]) {
+                    combinedData[student["Student Name"]]["2nd Term Percentage"] = calculateTermPercentage(student);
+                }
+            });
+
+            data3.forEach(student => {
+                if (combinedData[student["Student Name"]]) {
+                    combinedData[student["Student Name"]]["3rd Term Percentage"] = calculateTermPercentage(student);
+                }
+            });
+
+            students = Object.values(combinedData);
+            popuAll();
+        }
+
+        function calculateTermPercentage(student) {
+            const subjects = Object.keys(student).filter(key => key.includes('_CAT'));
+            let totalPercentage = 0;
+
+            subjects.forEach(subject => {
+                const catScore = parseInt(student[`${subject}_CAT`]) || 0;
+                const examScore = parseInt(student[`${subject}_Exam`]) || 0;
+                const totalScore = catScore + examScore;
+                totalPercentage += (totalScore / 100) * 100; // Total is out of 100
+            });
+
+            return (totalPercentage / subjects.length).toFixed(2);
+        }
+
+        function popuAll() {
+            const reportsContainer = document.getElementById('reportsContainer');
+            const templateSheet = document.getElementById('fullSheet');
+
+            students.forEach((student, index) => {
+                const clonedSheet = templateSheet.cloneNode(true);
+                popu(index, clonedSheet);
+                reportsContainer.appendChild(clonedSheet);
+            });
+        }
+
+        function popu(id, clonedSheet) {
+            // Update the HTML elements with the student data
+            clonedVar(clonedSheet, ['sname', 'sclass', 'age', 'schOpened', 'present', 'absent', 'nic', 'schResumes', 'cTeacher', 'hTeacher']);
+            clonedSheet.querySelector('#sname').innerHTML = students[id]["Student Name"];
+            clonedSheet.querySelector('#sclass').innerHTML = students[id]["Class"].toUpperCase();
+            clonedSheet.querySelector('#age').innerHTML = students[id]["Age"];
+            clonedSheet.querySelector('#schOpened').innerHTML = students[id]["School_Opens"];
+            clonedSheet.querySelector('#present').innerHTML = students[id]["Time_present"];
+            clonedSheet.querySelector('#absent').innerHTML = students[id]["Time_absent"];
+            clonedSheet.querySelector('#nic').innerText = students[id]["NoOfPupils"];
+            clonedSheet.querySelector('#schResumes').innerText = students[id]["Next_Term"];
+            clonedSheet.querySelector('#cTeacher').innerText = students[id]["ClassTeacher_Comment"];
+            clonedSheet.querySelector('#hTeacher').innerText = students[id]["HeadTeacher_Comment"];
+
+            const tbody = clonedSheet.querySelector('#studentTableBody');
+            tbody.innerHTML = ''; // Clear previous data
+
+            const overallPercentages = {
+                "1st Term": parseFloat(student["1st Term Percentage"]),
+                "2nd Term": parseFloat(student["2nd Term Percentage"]) || 0,
+                "3rd Term": parseFloat(student["3rd Term Percentage"]) || 0,
+            };
+
+            const overallPercentage = ((overallPercentages["1st Term"] + overallPercentages["2nd Term"] + overallPercentages["3rd Term"]) / 3).toFixed(2);
+
+            const subjects = Object.keys(student).filter(key => key.includes('_CAT')).map(key => key.split('_')[0]);
+
+            subjects.forEach(subject => {
+                const catScore1 = parseInt(student[`${subject}_CAT`]) || 0;
+                const examScore1 = parseInt(student[`${subject}_Exam`]) || 0;
+                const catScore2 = parseInt(student[`${subject}_CAT_2`] || 0);
+                const examScore2 = parseInt(student[`${subject}_Exam_2`] || 0);
+                const catScore3 = parseInt(student[`${subject}_CAT_3`] || 0);
+                const examScore3 = parseInt(student[`${subject}_Exam_3`] || 0);
+
+                const term1Percentage = ((catScore1 + examScore1) / 100) * 100;
+                const term2Percentage = ((catScore2 + examScore2) / 100) * 100;
+                const term3Percentage = ((catScore3 + examScore3) / 100) * 100;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${subject}</td>
+                    <td>${term1Percentage.toFixed(2)}%</td>
+                    <td>${term2Percentage.toFixed(2)}%</td>
+                    <td>${term3Percentage.toFixed(2)}%</td>
+                    <td>${overallPercentage}%</td>
+                    <td>${calculateGrade(overallPercentage).grade}</td>
+                    <td>${calculateGrade(overallPercentage).remark}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function calculateGrade(percentage) {
+            percentage = parseFloat(percentage);
+            if (percentage >= 90) return { grade: 'A+', remark: 'Excellent' };
+            if (percentage >= 80) return { grade: 'A', remark: 'Very Good' };
+            if (percentage >= 70) return { grade: 'B', remark: 'Good' };
+            if (percentage >= 60) return { grade: 'C', remark: 'Average' };
+            if (percentage >= 50) return { grade: 'D', remark: 'Pass' };
+            return { grade: 'F', remark: 'Fail' };
+        }
+
+        function clonedVar(clonedSheet, ids) {
+            // Clear the innerHTML of specified IDs in the cloned sheet
+            ids.forEach(id => {
+                const element = clonedSheet.querySelector(`#${id}`);
+                if (element) {
+                    element.innerHTML = ''; // Clear the innerHTML
+                }
+            });
+        }
+
+        fetchAllData();
+    </script>
+</body>
+
+</html>
